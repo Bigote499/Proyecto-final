@@ -45,7 +45,7 @@ cd inventario
 - Ejecutar el programa:
 python main.py
 - Interactuar con el menú:
-============================================
+
 GESTIÓN DE INVENTARIO DE PRODUCTOS
 1. Agregar producto
 2. Ver productos
@@ -54,7 +54,7 @@ GESTIÓN DE INVENTARIO DE PRODUCTOS
 5. Buscar producto
 6. Reporte de productos con bajo stock
 7. Salir
-============================================
+
 
 
 
@@ -88,9 +88,9 @@ Dos modos:
 - Inventario completo (categoría y fecha de creación)
 Ejemplo:
 Lista de productos
---------------------------------------------------------------------------------
+
 ID     NOMBRE                        MARCA                PRECIO $     CATEGORIA
---------------------------------------------------------------------------------
+
 1      Taladro                       Bosch                $25000.00    Herramientas eléctricas   2025-11-28
 
 
@@ -158,5 +158,6 @@ Puedes usarlo, modificarlo y compartirlo libremente.
 👨‍💻 Créditos
 - Autor principal: Sergio
 - Basado en código de clase 15 (Daniel Rivero) y adaptado con mejoras propias.
+
 
 
