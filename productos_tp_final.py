@@ -30,8 +30,8 @@ def inicializar_db():
         marca TEXT,
         descripcion TEXT,
         cantidad INTEGER NOT NULL CHECK (cantidad >= 0),
-        PRECIO REAL NOT NULL,
-        CATEGORIA TEXT,
+        precio REAL NOT NULL,
+        categoria TEXT,
         fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         fecha_actualizacion text
 
@@ -40,10 +40,18 @@ def inicializar_db():
 
     cursor.execute(sql)
 
-    # Verificar si la columna fecha_actualizacion existe, y si no, añadirla
+    # Verificar si la columna fecha_actualizacion existe, y si no, añadirla. También renombrar CATEGORIA (o renombrar cualquier otra columna) a categoria si es necesario.
+     # Investigue en la documentación de sqlite3 y con la ayuda de Copilot(AI).
     cursor.execute("PRAGMA table_info(productos)")
     columns = [col[1] for col in cursor.fetchall()]
 
+    
+    if 'CATEGORIA' in columns:
+        print(Fore.YELLOW + "La columna 'CATEGORIA' existe. Renombrándola a 'categoria'...")
+        cursor.execute("ALTER TABLE productos RENAME COLUMN CATEGORIA TO categoria;")
+
+
+    
     if 'fecha_actualizacion' not in columns:
         print(Fore.YELLOW + "La columna 'fecha_actualizacion' no existe. Añadiéndola a la tabla 'productos'...")
         cursor.execute("ALTER TABLE productos ADD COLUMN fecha_actualizacion TEXT")
