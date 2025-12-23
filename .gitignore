@@ -1,0 +1,9 @@
+# Archivos de base de datos
+inventario.db
+*.db
+
+# Archivos temporales de Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
