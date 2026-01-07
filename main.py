@@ -2,37 +2,46 @@ import sys
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout
 from ventana_ventas import VentanaVentas
 from ventana_inventario import VentanaInventario
+from ventana_login import VentanaLogin
+from launcher import Launcher
 
-class Launcher(QWidget):
-    def __init__(self):
-        super().__init__()
-        self.setWindowTitle("Sistema de Gestión")
-        self.resize(400, 200)
 
-        layout = QVBoxLayout()
+# Función para leer usuarios desde user.txt
+def cargar_usuarios():
+    usuarios = {}
+    try:
+        with open("user.txt", "r") as f:
+            for linea in f:
+                usuario, contraseña, rol = linea.strip().split(":")
+                usuarios[usuario] = {"password": contraseña, "rol": rol}
+    except FileNotFoundError:
+        print("Archivo de usuarios no encontrado.")
+    return usuarios
 
-        # Botón para Ventas
-        btn_ventas = QPushButton("Ventas y Facturación")
-        btn_ventas.clicked.connect(self.abrir_ventas)
-        layout.addWidget(btn_ventas)
+# Callback que se ejecuta cuando el login es correcto
+def abrir_menu(rol):
+    ventana = Launcher()
 
-        # Botón para Inventario
-        btn_inventario = QPushButton("Inventario de Productos")
-        btn_inventario.clicked.connect(self.abrir_inventario)
-        layout.addWidget(btn_inventario)
+    # Ejemplo: limitar botones según rol
+    if rol == "empleado":
+        # ocultar botón de Inventario si no es admin
+        for boton in ventana.findChildren(QPushButton):
+            if boton.text() == "Inventario de Productos":
+                boton.hide()
 
-        self.setLayout(layout)
 
-    def abrir_ventas(self):
-        self.ventana_ventas = VentanaVentas()
-        self.ventana_ventas.show()
 
-    def abrir_inventario(self):
-        self.ventana_inventario = VentanaInventario()
-        self.ventana_inventario.show()
+    ventana.show()
+    return ventana
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    launcher = Launcher()
-    launcher.show()
+
+    # Cargar usuarios desde user.txt
+    usuarios = cargar_usuarios()
+
+    # Mostrar ventana de login primero
+    login = VentanaLogin(usuarios, abrir_menu)
+    login.show()
+
     sys.exit(app.exec_())

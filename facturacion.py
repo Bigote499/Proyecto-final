@@ -1,6 +1,7 @@
 import sqlite3
 import os
 from datetime import datetime
+from reportlab.platypus import Image
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 import traceback  # ✅ agregado para mostrar errores detallados
@@ -87,15 +88,26 @@ def guardar_factura_pdf(cliente_id, carrito, modo_pago, tipo_comprobante, venta_
 
     c = canvas.Canvas(archivo, pagesize=A4)
     ancho, alto = A4
+    #  Insertar logo centrado
+    try:
+        base_dir = os.path.dirname(__file__)
+        logo_path = os.path.join(base_dir, "img_logo", "logo.png")
+        logo_width = 60
+        logo_height = 60
+        x_logo = (ancho - logo_width) / 2
+        y_logo = alto - 100
+        c.drawImage(logo_path, x_logo, y_logo, width=logo_width, height=logo_height)
+    except Exception as e:
+        print("⚠️ No se pudo cargar el logo:", e)
 
     c.setFont("Helvetica-Bold", 14)
     c.drawString(50, alto - 50, "Ferretería El Clavo Torcido")
-    c.setFont("Helvetica", 10)
+    c.setFont("Helvetica", 12)
     c.drawString(50, alto - 65, "Dirección: Av. Siempreviva 1234")
     c.drawString(50, alto - 80, "CUIT: 20-12345678-9")
 
     c.setFont("Helvetica-Bold", 12)
-    c.drawString(400, alto - 50, f"Factura {tipo_comprobante}")
+    c.drawString(400, alto - 50, tipo_comprobante)
     c.setFont("Helvetica", 10)
     c.drawString(400, alto - 65, f"Venta ID: {venta_id}")
     c.drawString(400, alto - 80, f"Fecha: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
