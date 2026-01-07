@@ -1,7 +1,5 @@
 import sqlite3
 
-
-
 def init_db():
     conexion = sqlite3.connect("inventario.db")
     cursor = conexion.cursor()
@@ -32,22 +30,7 @@ def init_db():
     )
     """)
 
-    # Tabla de facturas (opcional, si la usás)
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS facturas (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        cliente TEXT,
-        direccion TEXT,
-        cuit TEXT,
-        fecha TEXT,
-        modo_pago TEXT,
-        comprobante TEXT,
-        total REAL,
-        venta_id INTEGER REFERENCES ventas(id)
-    )
-    """)
-
-    #Tabla clientes
+    # Tabla clientes
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS clientes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -57,9 +40,23 @@ def init_db():
     )
     """)
 
+    # 🔧 Corrección: renombrar columna en facturas_old
+    try:
+        cursor.execute("ALTER TABLE facturas_old RENAME COLUMN cliente TO cliente_id")
+        print("Columna 'cliente' renombrada a 'cliente_id' en facturas_old.")
+    except Exception as e:
+        print("No se pudo renombrar la columna:", e)
+
+    try:
+        cursor.execute("ALTER TABLE facturas_old ADD COLUMN ruta_pdf TEXT")
+        print("Columna 'ruta_pdf' agregada a facturas_old.")
+    except Exception as e:
+        print("No se pudo agregar la columna ruta_pdf:", e)
+
+
     conexion.commit()
     conexion.close()
-    print("Base inicializada: ventas, detalle_ventas, facturas listas y clientes.")
+    print("Base inicializada: ventas, detalle_ventas, clientes y facturas_old corregida.")
 
 if __name__ == "__main__":
     init_db()

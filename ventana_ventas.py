@@ -7,6 +7,7 @@ from PyQt5.QtCore import Qt
 from datetime import datetime
 import sqlite3
 import ventas
+import os
 
 
 class BusquedaDialog(QDialog):
@@ -87,7 +88,7 @@ class VentanaVentas(QWidget):
 
         layout = QVBoxLayout()
         self.producto_seleccionado_id = None
-
+        self.carrito = []
         layout.addWidget(QLabel("--- PRODUCTOS ---"))
 
         # Boton buscar producto
@@ -315,33 +316,48 @@ class VentanaVentas(QWidget):
     def buscar_o_agregar_cliente(self):
         try:
             nombre = self.input_nombre_cliente.text().strip()
+            cuit = self.input_cuit.text().strip()
             direccion = self.input_direccion.text().strip()
-    
+
+
             if not nombre:
                 QMessageBox.warning(self, "Nombre faltante", "Por favor ingresá el nombre del cliente.")
                 return
     
-            conexion = sqlite3.connect("inventario.db")
-            cursor = conexion.cursor()
-    
-            # Buscar cliente por nombre (coincidencia parcial)
-            cursor.execute("SELECT id, nombre, direccion, cuit FROM clientes WHERE nombre LIKE ?", (f"%{nombre}%",))
-            cliente = cursor.fetchone()
-    
-            if cliente:
-                # Rellenar automáticamente los campos encontrados
-                self.input_nombre_cliente.setText(cliente[1])
-                self.input_direccion.setText(cliente[2] if cliente[2] else "")
-                self.input_cuit.setText(cliente[3] if cliente[3] else "")
-                QMessageBox.information(self, "Cliente encontrado", f"Nombre: {cliente[1]}\nDirección: {cliente[2]}\nCUIT: {cliente[3]}")
-            else:
-                # Registrar nuevo cliente (sin CUIT obligatorio)
-                cursor.execute("INSERT INTO clientes (nombre, direccion) VALUES (?, ?)", (nombre, direccion))
-                conexion.commit()
-                QMessageBox.information(self, "Cliente agregado", "Cliente registrado correctamente.")
-    
-            conexion.close()
-    
+            with sqlite3.connect("inventario.db") as conexion:
+                cursor = conexion.cursor()
+
+                # Buscar cliente por nombre (coincidencia parcial)
+                cursor.execute("SELECT id, nombre, cuit, direccion FROM clientes WHERE nombre LIKE ?", (f"%{nombre}%",))
+                cliente = cursor.fetchone()
+
+                if cliente:
+                    self.cliente_id_actual = cliente[0]  # ✅ Guardamos el ID
+                    # Normalizamos valores
+                    nombre_db = cliente[1] or ""
+                    cuit_db = cliente[2] or ""   #  nunca será None
+                    direccion_db = cliente[3] or ""
+
+                    # Rellenar automáticamente los campos encontrados
+                    self.input_nombre_cliente.setText(nombre_db)
+                    self.input_cuit.setText(cuit_db)
+                    self.input_direccion.setText(direccion_db)
+                    QMessageBox.information(
+                        self,
+                        "Cliente encontrado",
+                        f"Nombre: {nombre_db}\nCUIT: {cuit_db if cuit_db else 'No registrado'}\nDirección: {direccion_db}"
+                    )
+
+
+                else:
+                    # Registrar nuevo cliente (sin CUIT obligatorio)
+                    cursor.execute("INSERT INTO clientes (nombre, cuit, direccion) VALUES (?, ?, ?)", (nombre, cuit if cuit else None, direccion))
+                    conexion.commit()
+                    self.cliente_id_actual = cursor.lastrowid  # ✅ Guardamos el nuevo ID
+
+                    QMessageBox.information(self, "Cliente agregado", "Cliente registrado correctamente.")
+
+
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Ocurrió un problema:\n{str(e)}")
 
@@ -358,30 +374,60 @@ class VentanaVentas(QWidget):
             direccion = self.input_direccion.text().strip()
             cuit = self.input_cuit.text().strip()
             modo_pago = self.combo_pago.currentText()
-            tipo_comprobante = self.combo_comprobante.currentText()
+            comprobante = self.combo_comprobante.currentText()
 
+            if not direccion or not cuit:
+                self.output.append("⚠️ El cliente no tiene CUIT o dirección. Se facturará igual, pero los datos estarán incompletos.")
+
+            # Validar que haya cliente cargado
             if not cliente:
                 self.output.append("⚠️ Por favor completá el nombre del cliente antes de facturar.")
-                self.btn_facturar.setEnabled(True)
-                self.facturando = False
                 return
 
+            # Validar que exista cliente_id_actual
+            if not hasattr(self, "cliente_id_actual") or not self.cliente_id_actual:
+                self.output.append("❌ No se pudo identificar el cliente. Buscá o agregá un cliente antes de facturar.")
+                return
+
+            # Validar que haya venta cerrada
             if not hasattr(self, "venta_id_actual"):
                 self.output.append("❌ No hay venta registrada. Cerrá el carrito primero.")
-                self.btn_facturar.setEnabled(True)
-                self.facturando = False
                 return
 
+            # Crear ruta del PDF
+            nombre_archivo = f"factura_{self.venta_id_actual}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+            carpeta_facturas = "Facturas"
+            os.makedirs(carpeta_facturas, exist_ok=True)
+            ruta_pdf = os.path.join(carpeta_facturas, nombre_archivo)
+
+            # ✅ Guardar factura en la base de datos usando 'with'
+            with sqlite3.connect("inventario.db") as conexion:
+                cursor = conexion.cursor()
+
+                cursor.execute("""
+                    INSERT INTO facturas_old (cliente_id, venta_id, modo_pago, comprobante, fecha)
+                    VALUES (?, ?, ?, ?, ?)
+                """, (
+                    self.cliente_id_actual,
+                    self.venta_id_actual,
+                    modo_pago,
+                    comprobante,
+                    datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                ))
+
+                factura_id = cursor.lastrowid
+
+            # ✅ Generar PDF de la factura
             ventas.generar_factura(
                 venta_id=self.venta_id_actual,
-                cliente=cliente,
-                direccion=direccion,
-                cuit=cuit,
+                cliente_id=self.cliente_id_actual,
                 modo_pago=modo_pago,
-                tipo_comprobante=tipo_comprobante
+                comprobante= comprobante,
+                ruta_pdf=ruta_pdf
             )
 
-            self.output.append(f"✅ Venta facturada correctamente con {modo_pago} - {tipo_comprobante}.")
+            # ✅ Mensaje de confirmación y limpieza
+            self.output.append(f"✅ Venta facturada correctamente con {modo_pago} - {comprobante}.")
             self.lbl_total.setText("Total del carrito: $0.00")
             self.tabla.setRowCount(0)
             ventas.vaciar_carrito()

@@ -109,7 +109,7 @@ def mostrar_carrito():
     print(Fore.YELLOW + f"TOTAL: ${total:.2f}")
     return total
 
-# Guardar detalle de venta y actualizar stock
+
 def guardar_detalle_venta():
     if not carrito:
         print(Fore.RED + "El carrito está vacío.")
@@ -136,33 +136,42 @@ def guardar_detalle_venta():
 
     return id_venta
 
+# -------------------------------
 # Generar factura
-def generar_factura(venta_id, cliente, direccion, cuit, modo_pago, tipo_comprobante):
-    # Primero actualizamos la venta
+# -------------------------------
+def generar_factura(venta_id, cliente_id, modo_pago, comprobante, ruta_pdf):
+    global carrito  # usamos el carrito global
+
+    # Actualizar la venta
     with sqlite3.connect('inventario.db') as conexion:
         cursor = conexion.cursor()
         cursor.execute("""
             UPDATE ventas
-            SET cliente = ?, modo_pago = ?, comprobante = ?
+            SET modo_pago = ?, comprobante = ?
             WHERE id = ?
-        """, (cliente, modo_pago, tipo_comprobante, venta_id))
+        """, (modo_pago, comprobante, venta_id))
 
         cursor.execute("SELECT total FROM ventas WHERE id = ?", (venta_id,))
-        total = cursor.fetchone()[0]
+        resultado = cursor.fetchone()
+        if resultado:
+            total = resultado[0]
+        else:
+            print(Fore.RED + "No se encontró la venta para generar la factura.")
+            return
 
-    # Luego guardamos la factura en otra conexión independiente
-    guardar_factura(cliente, direccion, cuit, carrito, modo_pago, tipo_comprobante, venta_id)
-    guardar_cliente(cliente, direccion, cuit)
-    print(Fore.GREEN + f"Factura {tipo_comprobante} emitida para {cliente} - Total: ${total:.2f}")
+    print("Carrito recibido:", carrito)
 
-    #  Aquí agregás la generación del PDF
-    guardar_factura_pdf(cliente, direccion, cuit, carrito, modo_pago, tipo_comprobante, venta_id)
+    # Guardar la factura en la base
+    guardar_factura(cliente_id, carrito, modo_pago, comprobante, venta_id, ruta_pdf)
 
-    print(Fore.GREEN + f"Factura {tipo_comprobante} emitida para {cliente} - Total: ${total:.2f}")
-    
+    # Generar el PDF (sin ruta_pdf, porque la función ya arma el archivo)
+    guardar_factura_pdf(cliente_id, carrito, modo_pago, comprobante, venta_id)
 
+    print(Fore.GREEN + f"Factura {comprobante} emitida para cliente ID {cliente_id} - Total: ${total:.2f}")
 
-# Vaciar carrito después de facturar
+# -------------------------------
+# Vaciar carrito
+# -------------------------------
 def vaciar_carrito():
     global carrito
     if carrito:
