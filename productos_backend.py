@@ -1,9 +1,5 @@
-# Trabajo final - Gestión de Productos
+# Gestión de Productos
 # Autor: [Sosa Sergio Hernan]
-# Profesor y colaborador: Daniel Rivero.
-# Tutora: Bel Jader.
-# Proyectos utilizados como referencia: clase 15 main_12.py(Trabajo hecho en clase por el profesor. También lo hice para practicar)
-#  y proyecto final_sql_tabla_productos2 - copia.py y la pre-entrega (Trabajo hecho por mi autoría con lo aprendido en el curso).
 
 import sqlite3
 from colorama import Fore, Back, Style, init
