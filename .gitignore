@@ -7,3 +7,28 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+
+# Entornos virtuales
+venv/
+env/
+.venv/
+
+# Archivos de IDEs
+.vscode/
+.idea/
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
+
+# Archivos de log
+*.log
+
+# PDFs generados (si no querés versionarlos)
+Facturas/*.pdf
+
+# Imágenes temporales
+*.tmp.png
+
+# Reportes generados
+reporte_*.pdf
